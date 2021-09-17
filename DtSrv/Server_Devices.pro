@@ -12,7 +12,7 @@
 #      target.path = /home/root/devsrv
 #      INSTALLS += target
 #-------------------------------------------------
-# dtbehave.cpp remove  507 1816 1837 for test
+#@ dtbehave.cpp remove  507 1816 1837 for test
 QT       += core
 QT       += network
 QT       += serialport

@@ -504,7 +504,7 @@ void TDtBehav::run()
 // --SM run precheking begin-----------------------------------------------------
       case CHECKING_STATE: {
         logSrv->logMessage(tr("Check before RUN request."));
-        //checking();
+        checking();
         allStates[CHECKING_STATE]=READY;
         stCheckingErr=devError.analyseError();
         if(stCheckingErr){
@@ -1813,7 +1813,7 @@ void TDtBehav::startRun()
 // test on close cover. if don't close, return error state
   if(USBCy_RW("HPOS",answer,Motor_uC)) { // check
     QTextStream(&answer) >> i;
- //   if(i!=2){ devError.setDevError(STARTWITHOPENCOVER_ERROR); return ; } //run
+    if(i!=2){ devError.setDevError(STARTWITHOPENCOVER_ERROR); return ; } //run
   }
   if(devError.analyseError()){
     return ; //fatal error
@@ -1834,7 +1834,7 @@ void TDtBehav::startRun()
     else text = QString("FCEXP %1 0 %2 %3").arg(i).arg(expVal0[i]).arg(expVal1[i]);
     USBCy_RW(text,answer,Optics_uC);
   }
-//  USBCy_RW("FMODE 0",answer,Optics_uC); // don't write optical image from video into USB
+  USBCy_RW("FMODE 0",answer,Optics_uC); // don't write optical image from video into USB
   USBCy_RW("DPIC 0",answer,Optics_uC); // don't write optical image on SD
   USBCy_RW("FPSAVE",answer,Optics_uC);
   msleep(1);//usleep(1000);
