@@ -916,6 +916,16 @@ void TDtBehav::slotError(QAbstractSocket::SocketError err)
                      QString(m_ptcpServer->errorString())
                     );
     logNw->logMessage(strError);
+    if(err==QAbstractSocket::RemoteHostClosedError){
+      QFile deb("/mnt/ramdisk/deb");
+      if(!deb.exists()){
+        QFile fctrl("/mnt/ramdisk/ctrl.req");
+        if(fctrl.open(QIODevice::WriteOnly)){
+          fctrl.write("RSTP");
+          fctrl.close();
+        }
+      }
+    }
     clientConnected--;
     if(clientConnected<0) clientConnected=0;
 }
@@ -1499,6 +1509,7 @@ void TDtBehav::initialDevice(void)
 
   Optics_uC = new TCANChannels(UCOPTICS_CANID);
   USBCy_RW("FHW",fHw,Optics_uC);
+
   if(fHw.contains("v4.",Qt::CaseInsensitive)) vV=1;
   Temp_uC = new TCANChannels(UCTEMP_CANID);
   Motor_uC = new TCANChannels(UCMOTOR_CANID);
@@ -2462,7 +2473,7 @@ void TDtBehav::readAMPProg(void)
   int retVal=0;
   int type, vol, num_block, num_level, num_level_inBlock, rep, type_block;
           int temp, time, incr_temp, incr_time, grad, type_fluor, type_grad=0;
-
+  QTextCodec *ru=QTextCodec::codecForName("Windows-1251");
   while(1) {
     if(!USBCy_RW("XGP",answer,Temp_uC)) { retVal=1; break; }
     if(answer.contains("-1", Qt::CaseInsensitive)||answer.contains("?", Qt::CaseInsensitive)) { retVal=2; break; }
@@ -2493,8 +2504,10 @@ void TDtBehav::readAMPProg(void)
     if(USBCy_RW("XGN",answer,Temp_uC)) text.append(QString("XSAV %1").arg(answer));
     map_ampProgForSimple.insert(GETAMPINSIMPLE_AMPPROG,text);
 
-    if(USBCy_RW("PONM",answer,Optics_uC)) map_ampProgForSimple.insert(GETAMPINSIMPLE_PONM,QString("%1").arg(answer)); // operator name
-    if(USBCy_RW("PNUM",answer,Optics_uC)) map_ampProgForSimple.insert(GETAMPINSIMPLE_PNUM,QString("%1").arg(answer)); //protocol number
+    if(USBCy_RW("PONM",answer,Optics_uC))
+         map_ampProgForSimple.insert(GETAMPINSIMPLE_PONM,ru->toUnicode(answer.toLocal8Bit())); // operator name
+    if(USBCy_RW("PNUM",answer,Optics_uC))
+        map_ampProgForSimple.insert(GETAMPINSIMPLE_PNUM,ru->toUnicode(answer.toLocal8Bit())); //protocol number
     if(USBCy_RW("PDATE",answer,Optics_uC)) map_ampProgForSimple.insert(GETAMPINSIMPLE_PDATE,QString("%1").arg(answer)); // date & time of run
     if(USBCy_RW("FACS",answer,Optics_uC)) {
         bool ok;
