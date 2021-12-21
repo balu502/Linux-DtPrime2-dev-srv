@@ -1835,11 +1835,16 @@ void TDtBehav::startRun()
   USBCy_RW("XSP 0",answer,Temp_uC);
 
   active_ch = map_Run.value(run_activechannel).toInt(&ok,16);
-  int numActiveCh=0;
+  int numActiveCh=0,k=0;
+  int G_Expo[COUNT_CH*COUNT_SIMPLE_MEASURE]={0,0,0,0,0,0,0,0,0,0,0,0};
+  double coeff=0.308;
+  if(vV) coeff=0.154;
   for(i=0; i<COUNT_CH; i++)
   {
     if(active_ch & (0xf<<i*4)) {
       text = QString("FCEXP %1 2 %2 %3").arg(i).arg(expVal0[i]).arg(expVal1[i]);
+      G_Expo[k++]=expVal0[i]*coeff;
+      G_Expo[k++]=expVal1[i]*coeff;
       numActiveCh++;
     }
     else text = QString("FCEXP %1 0 %2 %3").arg(i).arg(expVal0[i]).arg(expVal1[i]);
@@ -1859,6 +1864,7 @@ void TDtBehav::startRun()
   list = text.split("\t");
   int expLevel=0;
   expLevels=0;
+  int minEXpFlat=100000,curExpLevel;
   for(i=0; i<list.size(); i++)
   {
     text = list.at(i);
@@ -1872,6 +1878,12 @@ void TDtBehav::startRun()
         if(levelList.at(0).toLower()=="xlev") {
           bool ok; int exp=levelList.at(6).toInt(&ok);
           if(ok) if(exp&1) expLevel+=exp;
+          if(exp){ // present measure
+            curExpLevel=levelList.at(2).toInt(&ok);
+            if(ok){
+              if(minEXpFlat>curExpLevel) minEXpFlat=curExpLevel;
+            }
+          }
         }
         if(levelList.at(0).toLower()=="xcyc") {
           bool ok; int cyc=levelList.at(1).toInt(&ok);
@@ -1883,6 +1895,29 @@ void TDtBehav::startRun()
     }
   }
   msleep(1);//usleep(200);
+  int min_time=0;
+//------------ FTIM
+  for(int i=0; i < COUNT_CH; i++) {  // по COUNT_CH каналам
+   if(active_ch & (0xf<<i*4)) {
+      min_time += 1000;    // подготовка к измерению (включение LED,поворот фильтров)
+
+      for(int j=0; j < COUNT_SIMPLE_MEASURE; j++) {
+        min_time += G_Expo[i*COUNT_SIMPLE_MEASURE+j];  	// экспозиция
+        min_time += 500;            		// считывание и обработка
+//        logSrv->logMessage(QString("AC 0x%1   i %2  j %4  time  %3  exp %5").arg(active_ch,0,16).arg(i).arg(min_time).arg(j).arg(G_Expo[i*COUNT_SIMPLE_MEASURE+j]));
+// для версии 1.20 и выше добавляем 1000мсек на запись видеокартинки на SD карту. Здесь не добавляется. Считаем что запускаем без записи видео.
+        }
+      }
+    }
+    min_time += 1000;	// добавили ещё 1 сек
+    int value = (min_time/1000.)*16;
+//    qDebug()<<text<<min_time<<minEXpFlat;
+    if(((int)(min_time/1000.) + 1) > minEXpFlat){
+      value = minEXpFlat * 16;
+    }
+    text = QString("FTIM %1").arg(value);
+    USBCy_RW(text,answer,Temp_uC);
+//-----------FTIM
   qDebug()<<"all exposition"<<expLevels*numActiveCh*COUNT_SIMPLE_MEASURE<<expLevels<<numActiveCh;
   if(devError.analyseError()){
     return ; //fatal error

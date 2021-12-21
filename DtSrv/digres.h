@@ -2,7 +2,7 @@
 #define DIGRES_H
 #define REPCOM 3
 #define MAX_OPTCHAN 8
-#define COUNT_CH 5
+#define COUNT_CH 6
 #define BYTES_IN_SECTOR 512            // counts of bytes in sector
 
 #define COUNT_SIMPLE_MEASURE 2         // number of meas set 2!!!
